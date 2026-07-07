@@ -67,6 +67,10 @@ from zenml.enums import (
     RunWaitConditionType,
     StepRuntime,
 )
+from zenml.execution.context import (
+    record_step_run,
+    setup_execution_context,
+)
 from zenml.execution.pipeline.dynamic.compilation import (
     compile_child_pipeline,
     compile_dynamic_step_invocation,
@@ -884,6 +888,7 @@ class DynamicPipelineRunner:
 
             with (
                 InMemoryArtifactCache(),
+                setup_execution_context(pipeline_run=self._run),
                 env_utils.temporary_runtime_environment(
                     self._snapshot.pipeline_configuration, self._snapshot.stack
                 ),
@@ -1225,7 +1230,7 @@ class DynamicPipelineRunner:
                     self.mark_node_succeeded(node_id=invocation_id)
                     return future
                 else:
-                    return load_step_run_outputs(step_run.id)
+                    return load_step_run_outputs(step_run)
 
             if (
                 runtime == StepRuntime.INLINE
@@ -1360,7 +1365,7 @@ class DynamicPipelineRunner:
             step_run = self._run_sync_step(
                 step=compiled_step, remaining_retries=remaining_retries
             )
-            return load_step_run_outputs(step_run.id)
+            return load_step_run_outputs(step_run)
 
     def _run_sync_step(
         self,
@@ -2204,6 +2209,8 @@ class DynamicPipelineRunner:
             # might not be refreshed yet and therefore not have the correct
             # status.
             step_run = Client().get_run_step(step_run.id, hydrate=False)
+
+        record_step_run(step_run)
 
         logger.debug(
             "Processing terminal step `%s` with status `%s`.",

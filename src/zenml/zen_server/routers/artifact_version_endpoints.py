@@ -269,10 +269,6 @@ def delete_artifact_version(
                 action=Action.READ,
             )
 
-    if delete_metadata:
-        zen_store().delete_artifact_version(artifact_version.id)
-        delete_model_resource(artifact_version)
-
     if delete_from_artifact_store and artifact_version.artifact_store_id:
         try:
             artifact_store = load_artifact_store(
@@ -287,6 +283,10 @@ def delete_artifact_version(
                 f"deleted. Delete the data manually from the artifact store. "
                 f"Full error: {e}"
             ) from e
+
+    if delete_metadata:
+        zen_store().delete_artifact_version(artifact_version.id)
+        delete_model_resource(artifact_version)
 
 
 @artifact_version_router.delete(
